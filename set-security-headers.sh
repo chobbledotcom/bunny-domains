@@ -325,14 +325,22 @@ success_count=0
 fail_count=0
 
 # Build CSP with dynamic host
-# Allow: self, unsafe-inline for scripts/styles, the base domain and its subdomains, and *.chobble.com
+# Allow: self, unsafe-inline for scripts/styles, the base domain's subdomains, *.chobble.com, and trusted third parties
+TRUSTED_HOSTS="https://*.chobble.com https://api.botpoison.com"
+
 if [[ -n "$BASE_DOMAIN" ]]; then
-    CSP_HOSTS="https://$BASE_DOMAIN https://*.$BASE_DOMAIN https://*.chobble.com"
+    if [[ "$BASE_DOMAIN" == "chobble.com" ]]; then
+        # Already a chobble.com domain
+        CSP_HOSTS="$TRUSTED_HOSTS"
+    else
+        # Different domain: allow its subdomains plus trusted hosts
+        CSP_HOSTS="https://*.$BASE_DOMAIN $TRUSTED_HOSTS"
+    fi
 else
-    CSP_HOSTS="https://*.chobble.com"
+    CSP_HOSTS="$TRUSTED_HOSTS"
 fi
 
-CSP_VALUE="default-src 'self'; script-src 'self' 'unsafe-inline' $CSP_HOSTS; style-src 'self' 'unsafe-inline'; img-src 'self' data: $CSP_HOSTS; font-src 'self'; connect-src 'self' $CSP_HOSTS; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+CSP_VALUE="default-src 'self'; script-src 'self' 'unsafe-inline' $CSP_HOSTS; style-src 'self' 'unsafe-inline'; img-src 'self' data: $CSP_HOSTS; font-src 'self'; connect-src 'self' $CSP_HOSTS; frame-src https://*.google.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://submit-form.com https://*.chobble.com"
 
 # Define headers to set
 declare -a headers=(
