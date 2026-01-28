@@ -340,7 +340,7 @@ else
     CSP_HOSTS="$TRUSTED_HOSTS"
 fi
 
-CSP_VALUE="default-src 'self'; script-src 'self' 'unsafe-inline' $CSP_HOSTS; style-src 'self' 'unsafe-inline'; img-src 'self' data: $CSP_HOSTS; font-src 'self'; connect-src 'self' $CSP_HOSTS; frame-src https://*.google.com https://www.youtube-nocookie.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://submit-form.com https://*.chobble.com"
+CSP_VALUE="default-src 'self'; script-src 'self' 'unsafe-inline' $CSP_HOSTS; style-src 'self' 'unsafe-inline'; img-src 'self' data: $CSP_HOSTS; font-src 'self'; connect-src 'self' $CSP_HOSTS; frame-src https://*.google.com https://www.youtube-nocookie.com https://iframe.mediadelivery.net; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://submit-form.com https://*.chobble.com"
 
 # Define headers to set
 declare -a headers=(
