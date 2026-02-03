@@ -222,15 +222,15 @@ declare -a existing_rule_guids
 if [[ "$existing_count" -gt 0 ]]; then
     echo -e "  ${BOLD}Found $existing_count existing response header rule(s):${NC}"
     echo ""
-    
+
     for i in $(seq 0 $((existing_count - 1))); do
         rule_guid=$(echo "$existing_rules" | jq -r ".[$i].Guid")
         header_name=$(echo "$existing_rules" | jq -r ".[$i].ActionParameter1")
         header_value=$(echo "$existing_rules" | jq -r ".[$i].ActionParameter2")
         enabled=$(echo "$existing_rules" | jq -r ".[$i].Enabled")
-        
+
         existing_rule_guids+=("$rule_guid")
-        
+
         if [[ "$enabled" == "true" ]]; then
             echo -e "    ${GREEN}●${NC} ${BOLD}$header_name${NC}"
         else
@@ -239,30 +239,25 @@ if [[ "$existing_count" -gt 0 ]]; then
         echo -e "      ${DIM}$header_value${NC}"
     done
     echo ""
-    
-    # Ask to delete existing rules
-    echo -e -n "  ${YELLOW}Delete existing response header rules before applying new ones? [y/N]:${NC} "
-    read -r delete_confirm
-    
-    if [[ "$delete_confirm" =~ ^[Yy]$ ]]; then
-        print_header "Removing Existing Rules"
-        
-        for guid in "${existing_rule_guids[@]}"; do
-            response=$(curl -s -w "\n%{http_code}" -X DELETE \
-                "${API_BASE}/pullzone/${PULL_ZONE_ID}/edgerules/${guid}" \
-                -H "AccessKey: ${BUNNY_API_KEY}" \
-                -H "Accept: application/json")
-            
-            http_code=$(echo "$response" | tail -n1)
-            
-            if [[ "$http_code" -ge 200 && "$http_code" -lt 300 ]]; then
-                print_success "Deleted rule ${DIM}$guid${NC}"
-            else
-                print_error "Failed to delete rule $guid (HTTP $http_code)"
-            fi
-        done
-        echo ""
-    fi
+
+    # Always delete existing rules before applying new ones
+    print_header "Removing Existing Rules"
+
+    for guid in "${existing_rule_guids[@]}"; do
+        response=$(curl -s -w "\n%{http_code}" -X DELETE \
+            "${API_BASE}/pullzone/${PULL_ZONE_ID}/edgerules/${guid}" \
+            -H "AccessKey: ${BUNNY_API_KEY}" \
+            -H "Accept: application/json")
+
+        http_code=$(echo "$response" | tail -n1)
+
+        if [[ "$http_code" -ge 200 && "$http_code" -lt 300 ]]; then
+            print_success "Deleted rule ${DIM}$guid${NC}"
+        else
+            print_error "Failed to delete rule $guid (HTTP $http_code)"
+        fi
+    done
+    echo ""
 else
     echo -e "  ${DIM}No existing response header rules found${NC}"
     echo ""
@@ -319,28 +314,124 @@ add_header_rule() {
     fi
 }
 
+# Build CSP interactively
+# Ask about each optional origin so headers can be tailored per pull zone
+
+print_header "Content Security Policy Origins"
+
+echo -e "  ${DIM}For each origin below, press Enter to accept the default (Y) or type n to skip.${NC}"
+echo ""
+
+# Helper: ask Y/n question, default yes
+ask_yn() {
+    local prompt="$1"
+    local answer
+    echo -e -n "  ${CYAN}→${NC} $prompt ${DIM}[Y/n]:${NC} "
+    read -r answer
+    [[ ! "$answer" =~ ^[Nn]$ ]]
+}
+
+# -- General hosts (script-src, img-src, connect-src) --
+# Always include botpoison for spam protection
+CSP_HOSTS="https://api.botpoison.com "
+
+if [[ -n "$BASE_DOMAIN" && "$BASE_DOMAIN" != "chobble.com" ]]; then
+    if ask_yn "Allow ${BOLD}*.$BASE_DOMAIN${NC} (own domain subdomains)?"; then
+        CSP_HOSTS+="https://*.$BASE_DOMAIN "
+    fi
+fi
+
+if ask_yn "Allow ${BOLD}*.chobble.com${NC} (Chobble services)?"; then
+    CSP_HOSTS+="https://*.chobble.com "
+fi
+
+# -- frame-src origins --
+echo ""
+echo -e "  ${BOLD}Frame / embed sources:${NC}"
+
+FRAME_HOSTS=""
+
+if ask_yn "Allow ${BOLD}*.google.com${NC} frames (Maps, reCAPTCHA)?"; then
+    FRAME_HOSTS+="https://*.google.com "
+fi
+
+if ask_yn "Allow ${BOLD}youtube-nocookie.com${NC} frames (YouTube embeds)?"; then
+    FRAME_HOSTS+="https://www.youtube-nocookie.com "
+fi
+
+if ask_yn "Allow ${BOLD}iframe.mediadelivery.net${NC} frames (Bunny Stream)?"; then
+    FRAME_HOSTS+="https://iframe.mediadelivery.net "
+fi
+
+if ask_yn "Allow ${BOLD}*.chobble.com${NC} frames?"; then
+    FRAME_HOSTS+="https://*.chobble.com "
+fi
+
+# -- third-party widget bundles (script + connect + frame) --
+echo ""
+echo -e "  ${BOLD}Third-party widgets:${NC}"
+
+EXTRA_SCRIPT_HOSTS=""
+EXTRA_CONNECT_HOSTS=""
+FORM_HOSTS=""
+
+if ask_yn "Allow ${BOLD}*.freetobook.com${NC} (booking widget: scripts, connect, frames, forms)?"; then
+    EXTRA_SCRIPT_HOSTS+="https://*.freetobook.com "
+    EXTRA_CONNECT_HOSTS+="https://*.freetobook.com "
+    FRAME_HOSTS+="https://*.freetobook.com "
+    FORM_HOSTS+="https://*.freetobook.com "
+fi
+
+# -- form-action origins --
+echo ""
+echo -e "  ${BOLD}Form action targets:${NC}"
+
+if ask_yn "Allow ${BOLD}submit-form.com${NC} (form submissions)?"; then
+    FORM_HOSTS+="https://submit-form.com "
+fi
+
+if ask_yn "Allow ${BOLD}*.chobble.com${NC} form actions?"; then
+    FORM_HOSTS+="https://*.chobble.com "
+fi
+
+# Trim trailing spaces
+CSP_HOSTS=$(echo "$CSP_HOSTS" | xargs)
+FRAME_HOSTS=$(echo "$FRAME_HOSTS" | xargs)
+EXTRA_SCRIPT_HOSTS=$(echo "$EXTRA_SCRIPT_HOSTS" | xargs)
+EXTRA_CONNECT_HOSTS=$(echo "$EXTRA_CONNECT_HOSTS" | xargs)
+FORM_HOSTS=$(echo "$FORM_HOSTS" | xargs)
+
+# Build the CSP value
+SCRIPT_SRC="'self' 'unsafe-inline'"
+[[ -n "$CSP_HOSTS" ]] && SCRIPT_SRC+=" $CSP_HOSTS"
+[[ -n "$EXTRA_SCRIPT_HOSTS" ]] && SCRIPT_SRC+=" $EXTRA_SCRIPT_HOSTS"
+
+IMG_SRC="'self' data:"
+[[ -n "$CSP_HOSTS" ]] && IMG_SRC+=" $CSP_HOSTS"
+
+CONNECT_SRC="'self'"
+[[ -n "$CSP_HOSTS" ]] && CONNECT_SRC+=" $CSP_HOSTS"
+[[ -n "$EXTRA_CONNECT_HOSTS" ]] && CONNECT_SRC+=" $EXTRA_CONNECT_HOSTS"
+
+FRAME_SRC=""
+[[ -n "$FRAME_HOSTS" ]] && FRAME_SRC="$FRAME_HOSTS"
+
+FORM_ACTION="'self'"
+[[ -n "$FORM_HOSTS" ]] && FORM_ACTION+=" $FORM_HOSTS"
+
+CSP_VALUE="default-src 'self'; script-src $SCRIPT_SRC; style-src 'self' 'unsafe-inline'; img-src $IMG_SRC; font-src 'self'; connect-src $CONNECT_SRC"
+[[ -n "$FRAME_SRC" ]] && CSP_VALUE+="; frame-src $FRAME_SRC"
+CSP_VALUE+="; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action $FORM_ACTION"
+
+echo ""
+echo -e "  ${BOLD}Resulting CSP:${NC}"
+echo -e "  ${DIM}$CSP_VALUE${NC}"
+echo ""
+
 print_header "Setting Security Headers"
 
 success_count=0
 fail_count=0
-
-# Build CSP with dynamic host
-# Allow: self, unsafe-inline for scripts/styles, the base domain's subdomains, *.chobble.com, and trusted third parties
-TRUSTED_HOSTS="https://*.chobble.com https://api.botpoison.com"
-
-if [[ -n "$BASE_DOMAIN" ]]; then
-    if [[ "$BASE_DOMAIN" == "chobble.com" ]]; then
-        # Already a chobble.com domain
-        CSP_HOSTS="$TRUSTED_HOSTS"
-    else
-        # Different domain: allow its subdomains plus trusted hosts
-        CSP_HOSTS="https://*.$BASE_DOMAIN $TRUSTED_HOSTS"
-    fi
-else
-    CSP_HOSTS="$TRUSTED_HOSTS"
-fi
-
-CSP_VALUE="default-src 'self'; script-src 'self' 'unsafe-inline' $CSP_HOSTS; style-src 'self' 'unsafe-inline'; img-src 'self' data: $CSP_HOSTS; font-src 'self'; connect-src 'self' $CSP_HOSTS; frame-src https://*.google.com https://www.youtube-nocookie.com https://iframe.mediadelivery.net https://*.chobble.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://submit-form.com https://*.chobble.com"
 
 # Define headers to set
 declare -a headers=(
