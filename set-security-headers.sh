@@ -382,6 +382,16 @@ if ask_yn "Allow ${BOLD}*.freetobook.com${NC} (booking widget: scripts, connect,
     FORM_HOSTS+="https://*.freetobook.com "
 fi
 
+# -- site features requiring special CSP keywords --
+echo ""
+echo -e "  ${BOLD}Site features:${NC}"
+
+WASM_UNSAFE_EVAL=""
+
+if ask_yn "Allow ${BOLD}Pagefind search${NC} (WebAssembly via 'wasm-unsafe-eval' in script-src)?"; then
+    WASM_UNSAFE_EVAL="'wasm-unsafe-eval'"
+fi
+
 # -- form-action origins --
 echo ""
 echo -e "  ${BOLD}Form action targets:${NC}"
@@ -403,6 +413,7 @@ FORM_HOSTS=$(echo "$FORM_HOSTS" | xargs)
 
 # Build the CSP value
 SCRIPT_SRC="'self' 'unsafe-inline'"
+[[ -n "$WASM_UNSAFE_EVAL" ]] && SCRIPT_SRC+=" $WASM_UNSAFE_EVAL"
 [[ -n "$CSP_HOSTS" ]] && SCRIPT_SRC+=" $CSP_HOSTS"
 [[ -n "$EXTRA_SCRIPT_HOSTS" ]] && SCRIPT_SRC+=" $EXTRA_SCRIPT_HOSTS"
 
