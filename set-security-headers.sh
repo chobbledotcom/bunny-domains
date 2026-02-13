@@ -382,6 +382,10 @@ if ask_yn "Allow ${BOLD}*.freetobook.com${NC} (booking widget: scripts, connect,
     FORM_HOSTS+="https://*.freetobook.com "
 fi
 
+if ask_yn "Allow ${BOLD}www.clarity.ms${NC} (Microsoft Clarity analytics: scripts)?"; then
+    EXTRA_SCRIPT_HOSTS+="https://www.clarity.ms "
+fi
+
 # -- site features requiring special CSP keywords --
 echo ""
 echo -e "  ${BOLD}Site features:${NC}"
