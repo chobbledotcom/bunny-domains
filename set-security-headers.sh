@@ -363,6 +363,10 @@ if ask_yn "Allow ${BOLD}iframe.mediadelivery.net${NC} frames (Bunny Stream)?"; t
     FRAME_HOSTS+="https://iframe.mediadelivery.net "
 fi
 
+if ask_yn "Allow ${BOLD}player.vimeo.com${NC} frames (Vimeo embeds)?"; then
+    FRAME_HOSTS+="https://player.vimeo.com "
+fi
+
 if ask_yn "Allow ${BOLD}*.chobble.com${NC} frames?"; then
     FRAME_HOSTS+="https://*.chobble.com "
 fi
