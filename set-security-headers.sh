@@ -377,6 +377,7 @@ echo -e "  ${BOLD}Third-party widgets:${NC}"
 
 EXTRA_SCRIPT_HOSTS=""
 EXTRA_CONNECT_HOSTS=""
+IMG_HOSTS=""
 FORM_HOSTS=""
 
 if ask_yn "Allow ${BOLD}*.freetobook.com${NC} (booking widget: scripts, connect, frames, forms)?"; then
@@ -388,6 +389,12 @@ fi
 
 if ask_yn "Allow ${BOLD}www.clarity.ms${NC} (Microsoft Clarity analytics: scripts)?"; then
     EXTRA_SCRIPT_HOSTS+="https://www.clarity.ms "
+fi
+
+if ask_yn "Allow ${BOLD}Google Tag Manager${NC} (scripts, images, connect)?"; then
+    EXTRA_SCRIPT_HOSTS+="https://www.googletagmanager.com "
+    IMG_HOSTS+="https://www.googletagmanager.com "
+    EXTRA_CONNECT_HOSTS+="https://www.googletagmanager.com "
 fi
 
 # -- site features requiring special CSP keywords --
@@ -417,6 +424,7 @@ CSP_HOSTS=$(echo "$CSP_HOSTS" | xargs)
 FRAME_HOSTS=$(echo "$FRAME_HOSTS" | xargs)
 EXTRA_SCRIPT_HOSTS=$(echo "$EXTRA_SCRIPT_HOSTS" | xargs)
 EXTRA_CONNECT_HOSTS=$(echo "$EXTRA_CONNECT_HOSTS" | xargs)
+IMG_HOSTS=$(echo "$IMG_HOSTS" | xargs)
 FORM_HOSTS=$(echo "$FORM_HOSTS" | xargs)
 
 # Build the CSP value
@@ -427,6 +435,7 @@ SCRIPT_SRC="'self' 'unsafe-inline'"
 
 IMG_SRC="'self' data:"
 [[ -n "$CSP_HOSTS" ]] && IMG_SRC+=" $CSP_HOSTS"
+[[ -n "$IMG_HOSTS" ]] && IMG_SRC+=" $IMG_HOSTS"
 
 CONNECT_SRC="'self'"
 [[ -n "$CSP_HOSTS" ]] && CONNECT_SRC+=" $CSP_HOSTS"
