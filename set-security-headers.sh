@@ -379,11 +379,12 @@ EXTRA_SCRIPT_HOSTS=""
 EXTRA_CONNECT_HOSTS=""
 IMG_HOSTS=""
 FORM_HOSTS=""
+IMG_GOOGLE=""
 
 if ask_yn "Allow ${BOLD}*.freetobook.com${NC} (booking widget: scripts, connect, frames, forms)?"; then
     EXTRA_SCRIPT_HOSTS+="https://*.freetobook.com "
     EXTRA_CONNECT_HOSTS+="https://*.freetobook.com "
-    FRAME_HOSTS+="https://*.freetobook.com "
+    FRAME_HOSTS+="https://*.freetobook.com https://booking-directly.com"
     FORM_HOSTS+="https://*.freetobook.com "
 fi
 
@@ -391,10 +392,10 @@ if ask_yn "Allow ${BOLD}www.clarity.ms${NC} (Microsoft Clarity analytics: script
     EXTRA_SCRIPT_HOSTS+="https://www.clarity.ms "
 fi
 
-if ask_yn "Allow ${BOLD}Google Tag Manager${NC} (scripts, images, connect)?"; then
-    EXTRA_SCRIPT_HOSTS+="https://www.googletagmanager.com "
-    IMG_HOSTS+="https://www.googletagmanager.com "
-    EXTRA_CONNECT_HOSTS+="https://www.googletagmanager.com "
+if ask_yn "Allow ${BOLD}Google Analytics/Ads${NC} (GA4, GTM, conversion tracking)?"; then
+    EXTRA_SCRIPT_HOSTS+="https://*.googletagmanager.com https://*.google-analytics.com https://*.googleadservices.com https://*.googlesyndication.com "
+    IMG_GOOGLE="https://*.google-analytics.com https://*.googletagmanager.com https://*.google.com https://*.googleadservices.com https://*.doubleclick.net "
+    EXTRA_CONNECT_HOSTS+="https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.google.com https://*.googleadservices.com https://*.doubleclick.net "
 fi
 
 # -- site features requiring special CSP keywords --
@@ -435,7 +436,7 @@ SCRIPT_SRC="'self' 'unsafe-inline'"
 
 IMG_SRC="'self' data:"
 [[ -n "$CSP_HOSTS" ]] && IMG_SRC+=" $CSP_HOSTS"
-[[ -n "$IMG_HOSTS" ]] && IMG_SRC+=" $IMG_HOSTS"
+[[ -n "$IMG_GOOGLE" ]] && IMG_SRC+=" $IMG_GOOGLE"
 
 CONNECT_SRC="'self'"
 [[ -n "$CSP_HOSTS" ]] && CONNECT_SRC+=" $CSP_HOSTS"
