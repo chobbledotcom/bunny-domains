@@ -408,6 +408,10 @@ if ask_yn "Allow ${BOLD}Pagefind search${NC} (WebAssembly via 'wasm-unsafe-eval'
     WASM_UNSAFE_EVAL="'wasm-unsafe-eval'"
 fi
 
+if ask_yn "Allow ${BOLD}OpenStreetMap tiles${NC} (map images via *.tile.openstreetmap.org)?"; then
+    IMG_HOSTS+="https://*.tile.openstreetmap.org "
+fi
+
 # -- form-action origins --
 echo ""
 echo -e "  ${BOLD}Form action targets:${NC}"
