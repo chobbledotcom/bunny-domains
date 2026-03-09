@@ -58,6 +58,9 @@ if [[ ! -f "$ENV_FILE" ]]; then
     echo -e "    ${CYAN}WEBHOOK_URL=...${NC}"
     echo -e "    ${CYAN}STORAGE_ZONE_NAME=...${NC}"
     echo -e "    ${CYAN}STORAGE_ZONE_KEY=...${NC}"
+    echo -e "    ${CYAN}HOST_EMAIL_PROVIDER=...${NC}"
+    echo -e "    ${CYAN}HOST_EMAIL_API_KEY=...${NC}"
+    echo -e "    ${CYAN}HOST_EMAIL_FROM_ADDRESS=...${NC}"
     echo ""
     exit 1
 fi
@@ -289,6 +292,60 @@ else
     else
         print_info "Using ${BOLD}STORAGE_ZONE_KEY${NC} from .env"
         if set_secret "STORAGE_ZONE_KEY" "$STORAGE_ZONE_KEY"; then
+            success_count=$((success_count + 1))
+        else
+            fail_count=$((fail_count + 1))
+        fi
+    fi
+fi
+
+# --- HOST_EMAIL_PROVIDER: read from .env ---
+if secret_exists "HOST_EMAIL_PROVIDER"; then
+    print_skip "${BOLD}HOST_EMAIL_PROVIDER${NC} already exists, skipping"
+    skip_count=$((skip_count + 1))
+else
+    if [[ -z "${HOST_EMAIL_PROVIDER:-}" ]]; then
+        print_error "${BOLD}HOST_EMAIL_PROVIDER${NC} not found in .env, skipping"
+        fail_count=$((fail_count + 1))
+    else
+        print_info "Using ${BOLD}HOST_EMAIL_PROVIDER${NC} from .env"
+        if set_secret "HOST_EMAIL_PROVIDER" "$HOST_EMAIL_PROVIDER"; then
+            success_count=$((success_count + 1))
+        else
+            fail_count=$((fail_count + 1))
+        fi
+    fi
+fi
+
+# --- HOST_EMAIL_API_KEY: read from .env ---
+if secret_exists "HOST_EMAIL_API_KEY"; then
+    print_skip "${BOLD}HOST_EMAIL_API_KEY${NC} already exists, skipping"
+    skip_count=$((skip_count + 1))
+else
+    if [[ -z "${HOST_EMAIL_API_KEY:-}" ]]; then
+        print_error "${BOLD}HOST_EMAIL_API_KEY${NC} not found in .env, skipping"
+        fail_count=$((fail_count + 1))
+    else
+        print_info "Using ${BOLD}HOST_EMAIL_API_KEY${NC} from .env"
+        if set_secret "HOST_EMAIL_API_KEY" "$HOST_EMAIL_API_KEY"; then
+            success_count=$((success_count + 1))
+        else
+            fail_count=$((fail_count + 1))
+        fi
+    fi
+fi
+
+# --- HOST_EMAIL_FROM_ADDRESS: read from .env ---
+if secret_exists "HOST_EMAIL_FROM_ADDRESS"; then
+    print_skip "${BOLD}HOST_EMAIL_FROM_ADDRESS${NC} already exists, skipping"
+    skip_count=$((skip_count + 1))
+else
+    if [[ -z "${HOST_EMAIL_FROM_ADDRESS:-}" ]]; then
+        print_error "${BOLD}HOST_EMAIL_FROM_ADDRESS${NC} not found in .env, skipping"
+        fail_count=$((fail_count + 1))
+    else
+        print_info "Using ${BOLD}HOST_EMAIL_FROM_ADDRESS${NC} from .env"
+        if set_secret "HOST_EMAIL_FROM_ADDRESS" "$HOST_EMAIL_FROM_ADDRESS"; then
             success_count=$((success_count + 1))
         else
             fail_count=$((fail_count + 1))
