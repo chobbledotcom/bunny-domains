@@ -296,6 +296,19 @@ else
     fi
 fi
 
+# --- BUNNY_API_KEY: read from .env ---
+if secret_exists "BUNNY_API_KEY"; then
+    print_skip "${BOLD}BUNNY_API_KEY${NC} already exists, skipping"
+    skip_count=$((skip_count + 1))
+else
+    print_info "Using ${BOLD}BUNNY_API_KEY${NC} from .env"
+    if set_secret "BUNNY_API_KEY" "$BUNNY_API_KEY"; then
+        success_count=$((success_count + 1))
+    else
+        fail_count=$((fail_count + 1))
+    fi
+fi
+
 # Summary
 print_header "Summary"
 
