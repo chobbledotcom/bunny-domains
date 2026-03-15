@@ -371,6 +371,10 @@ if ask_yn "Allow ${BOLD}*.chobble.com${NC} frames?"; then
     FRAME_HOSTS+="https://*.chobble.com "
 fi
 
+if ask_yn "Allow ${BOLD}TotalDrive.app${NC} frames (driving instructor booking widget)?"; then
+    FRAME_HOSTS+="https://totaldrive.app https://*.totaldrive.app "
+fi
+
 # -- third-party widget bundles (script + connect + frame) --
 echo ""
 echo -e "  ${BOLD}Third-party widgets:${NC}"
