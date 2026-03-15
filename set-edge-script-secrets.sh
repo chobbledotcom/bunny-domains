@@ -28,25 +28,11 @@ print_header() {
     echo ""
 }
 
-print_success() {
-    echo -e "  ${GREEN}✓${NC} $1"
-}
-
-print_error() {
-    echo -e "  ${RED}✗${NC} $1"
-}
-
-print_info() {
-    echo -e "  ${CYAN}→${NC} $1"
-}
-
-print_skip() {
-    echo -e "  ${DIM}○${NC} $1"
-}
-
-print_step() {
-    echo -e "${YELLOW}▶${NC} $1"
-}
+print_success() { echo -e "  ${GREEN}✓${NC} $1"; }
+print_error() { echo -e "  ${RED}✗${NC} $1"; }
+print_info() { echo -e "  ${CYAN}→${NC} $1"; }
+print_skip() { echo -e "  ${DIM}○${NC} $1"; }
+print_step() { echo -e "${YELLOW}▶${NC} $1"; }
 
 # Load environment variables
 if [[ ! -f "$ENV_FILE" ]]; then
@@ -61,6 +47,11 @@ if [[ ! -f "$ENV_FILE" ]]; then
     echo -e "    ${CYAN}HOST_EMAIL_PROVIDER=...${NC}"
     echo -e "    ${CYAN}HOST_EMAIL_API_KEY=...${NC}"
     echo -e "    ${CYAN}HOST_EMAIL_FROM_ADDRESS=...${NC}"
+    echo -e "    ${CYAN}APPLE_WALLET_PASS_TYPE_ID=...${NC}"
+    echo -e "    ${CYAN}APPLE_WALLET_TEAM_ID=...${NC}"
+    echo -e "    ${CYAN}APPLE_WALLET_SIGNING_CERT=\$(cat ./signing-cert.pem)${NC}"
+    echo -e "    ${CYAN}APPLE_WALLET_SIGNING_KEY=\$(cat ./signing-key.pem)${NC}"
+    echo -e "    ${CYAN}APPLE_WALLET_WWDR_CERT=\$(cat ./wwdr-cert.pem)${NC}"
     echo ""
     exit 1
 fi
@@ -111,8 +102,7 @@ fi
 existing_secrets=$(echo "$secrets_body" | jq -r '.Secrets[].Name // empty')
 
 secret_exists() {
-    local name="$1"
-    echo "$existing_secrets" | grep -qx "$name"
+    echo "$existing_secrets" | grep -qx "$1"
 }
 
 # Function to set a secret via API
@@ -146,55 +136,65 @@ set_secret() {
     fi
 }
 
-# Process each secret
-print_header "Setting Secrets"
-
+# Counters
 success_count=0
 skip_count=0
 fail_count=0
 
+# Helper: set secret from .env variable (by name)
+set_from_env() {
+    local name="$1"
+    local value="${!name:-}"
+
+    if secret_exists "$name"; then
+        print_skip "${BOLD}$name${NC} already exists, skipping"
+        skip_count=$((skip_count + 1))
+    elif [[ -z "$value" ]]; then
+        print_error "${BOLD}$name${NC} not found in .env, skipping"
+        fail_count=$((fail_count + 1))
+    else
+        print_info "Using ${BOLD}$name${NC} from .env"
+        if set_secret "$name" "$value"; then
+            success_count=$((success_count + 1))
+        else
+            fail_count=$((fail_count + 1))
+        fi
+    fi
+}
+
+# Helper: set secret by prompting the user
+set_from_prompt() {
+    local name="$1"
+
+    if secret_exists "$name"; then
+        print_skip "${BOLD}$name${NC} already exists, skipping"
+        skip_count=$((skip_count + 1))
+    else
+        echo -e -n "  ${CYAN}→${NC} Enter ${BOLD}$name${NC}: "
+        read -r value
+        if [[ -z "$value" ]]; then
+            print_error "$name cannot be empty, skipping"
+            fail_count=$((fail_count + 1))
+        elif set_secret "$name" "$value"; then
+            success_count=$((success_count + 1))
+        else
+            fail_count=$((fail_count + 1))
+        fi
+    fi
+}
+
+# Process each secret
+print_header "Setting Secrets"
+
 echo -e "  ${DIM}Existing secrets will be skipped (not overwritten).${NC}"
 echo ""
 
-# --- DB_URL: ask user ---
-if secret_exists "DB_URL"; then
-    print_skip "${BOLD}DB_URL${NC} already exists, skipping"
-    skip_count=$((skip_count + 1))
-else
-    echo -e -n "  ${CYAN}→${NC} Enter ${BOLD}DB_URL${NC}: "
-    read -r db_url
-    if [[ -n "$db_url" ]]; then
-        if set_secret "DB_URL" "$db_url"; then
-            success_count=$((success_count + 1))
-        else
-            fail_count=$((fail_count + 1))
-        fi
-    else
-        print_error "DB_URL cannot be empty, skipping"
-        fail_count=$((fail_count + 1))
-    fi
-fi
+# Prompted secrets
+set_from_prompt "DB_URL"
+set_from_prompt "DB_TOKEN"
+set_from_prompt "ALLOWED_DOMAIN"
 
-# --- DB_TOKEN: ask user ---
-if secret_exists "DB_TOKEN"; then
-    print_skip "${BOLD}DB_TOKEN${NC} already exists, skipping"
-    skip_count=$((skip_count + 1))
-else
-    echo -e -n "  ${CYAN}→${NC} Enter ${BOLD}DB_TOKEN${NC}: "
-    read -r db_token
-    if [[ -n "$db_token" ]]; then
-        if set_secret "DB_TOKEN" "$db_token"; then
-            success_count=$((success_count + 1))
-        else
-            fail_count=$((fail_count + 1))
-        fi
-    else
-        print_error "DB_TOKEN cannot be empty, skipping"
-        fail_count=$((fail_count + 1))
-    fi
-fi
-
-# --- DB_ENCRYPTION_KEY: generate ---
+# Auto-generated secrets
 if secret_exists "DB_ENCRYPTION_KEY"; then
     print_skip "${BOLD}DB_ENCRYPTION_KEY${NC} already exists, skipping"
     skip_count=$((skip_count + 1))
@@ -208,163 +208,22 @@ else
     fi
 fi
 
-# --- NTFY_URL: read from .env ---
-if secret_exists "NTFY_URL"; then
-    print_skip "${BOLD}NTFY_URL${NC} already exists, skipping"
-    skip_count=$((skip_count + 1))
-else
-    if [[ -z "${NTFY_URL:-}" ]]; then
-        print_error "${BOLD}NTFY_URL${NC} not found in .env, skipping"
-        fail_count=$((fail_count + 1))
-    else
-        print_info "Using ${BOLD}NTFY_URL${NC} from .env"
-        if set_secret "NTFY_URL" "$NTFY_URL"; then
-            success_count=$((success_count + 1))
-        else
-            fail_count=$((fail_count + 1))
-        fi
-    fi
-fi
+# Secrets from .env
+set_from_env "NTFY_URL"
+set_from_env "WEBHOOK_URL"
+set_from_env "STORAGE_ZONE_NAME"
+set_from_env "STORAGE_ZONE_KEY"
+set_from_env "HOST_EMAIL_PROVIDER"
+set_from_env "HOST_EMAIL_API_KEY"
+set_from_env "HOST_EMAIL_FROM_ADDRESS"
+set_from_env "BUNNY_API_KEY"
 
-# --- ALLOWED_DOMAIN: ask user ---
-if secret_exists "ALLOWED_DOMAIN"; then
-    print_skip "${BOLD}ALLOWED_DOMAIN${NC} already exists, skipping"
-    skip_count=$((skip_count + 1))
-else
-    echo -e -n "  ${CYAN}→${NC} Enter ${BOLD}ALLOWED_DOMAIN${NC}: "
-    read -r allowed_domain
-    if [[ -n "$allowed_domain" ]]; then
-        if set_secret "ALLOWED_DOMAIN" "$allowed_domain"; then
-            success_count=$((success_count + 1))
-        else
-            fail_count=$((fail_count + 1))
-        fi
-    else
-        print_error "ALLOWED_DOMAIN cannot be empty, skipping"
-        fail_count=$((fail_count + 1))
-    fi
-fi
-
-# --- WEBHOOK_URL: read from .env ---
-if secret_exists "WEBHOOK_URL"; then
-    print_skip "${BOLD}WEBHOOK_URL${NC} already exists, skipping"
-    skip_count=$((skip_count + 1))
-else
-    if [[ -z "${WEBHOOK_URL:-}" ]]; then
-        print_error "${BOLD}WEBHOOK_URL${NC} not found in .env, skipping"
-        fail_count=$((fail_count + 1))
-    else
-        print_info "Using ${BOLD}WEBHOOK_URL${NC} from .env"
-        if set_secret "WEBHOOK_URL" "$WEBHOOK_URL"; then
-            success_count=$((success_count + 1))
-        else
-            fail_count=$((fail_count + 1))
-        fi
-    fi
-fi
-
-# --- STORAGE_ZONE_NAME: read from .env ---
-if secret_exists "STORAGE_ZONE_NAME"; then
-    print_skip "${BOLD}STORAGE_ZONE_NAME${NC} already exists, skipping"
-    skip_count=$((skip_count + 1))
-else
-    if [[ -z "${STORAGE_ZONE_NAME:-}" ]]; then
-        print_error "${BOLD}STORAGE_ZONE_NAME${NC} not found in .env, skipping"
-        fail_count=$((fail_count + 1))
-    else
-        print_info "Using ${BOLD}STORAGE_ZONE_NAME${NC} from .env"
-        if set_secret "STORAGE_ZONE_NAME" "$STORAGE_ZONE_NAME"; then
-            success_count=$((success_count + 1))
-        else
-            fail_count=$((fail_count + 1))
-        fi
-    fi
-fi
-
-# --- STORAGE_ZONE_KEY: read from .env ---
-if secret_exists "STORAGE_ZONE_KEY"; then
-    print_skip "${BOLD}STORAGE_ZONE_KEY${NC} already exists, skipping"
-    skip_count=$((skip_count + 1))
-else
-    if [[ -z "${STORAGE_ZONE_KEY:-}" ]]; then
-        print_error "${BOLD}STORAGE_ZONE_KEY${NC} not found in .env, skipping"
-        fail_count=$((fail_count + 1))
-    else
-        print_info "Using ${BOLD}STORAGE_ZONE_KEY${NC} from .env"
-        if set_secret "STORAGE_ZONE_KEY" "$STORAGE_ZONE_KEY"; then
-            success_count=$((success_count + 1))
-        else
-            fail_count=$((fail_count + 1))
-        fi
-    fi
-fi
-
-# --- HOST_EMAIL_PROVIDER: read from .env ---
-if secret_exists "HOST_EMAIL_PROVIDER"; then
-    print_skip "${BOLD}HOST_EMAIL_PROVIDER${NC} already exists, skipping"
-    skip_count=$((skip_count + 1))
-else
-    if [[ -z "${HOST_EMAIL_PROVIDER:-}" ]]; then
-        print_error "${BOLD}HOST_EMAIL_PROVIDER${NC} not found in .env, skipping"
-        fail_count=$((fail_count + 1))
-    else
-        print_info "Using ${BOLD}HOST_EMAIL_PROVIDER${NC} from .env"
-        if set_secret "HOST_EMAIL_PROVIDER" "$HOST_EMAIL_PROVIDER"; then
-            success_count=$((success_count + 1))
-        else
-            fail_count=$((fail_count + 1))
-        fi
-    fi
-fi
-
-# --- HOST_EMAIL_API_KEY: read from .env ---
-if secret_exists "HOST_EMAIL_API_KEY"; then
-    print_skip "${BOLD}HOST_EMAIL_API_KEY${NC} already exists, skipping"
-    skip_count=$((skip_count + 1))
-else
-    if [[ -z "${HOST_EMAIL_API_KEY:-}" ]]; then
-        print_error "${BOLD}HOST_EMAIL_API_KEY${NC} not found in .env, skipping"
-        fail_count=$((fail_count + 1))
-    else
-        print_info "Using ${BOLD}HOST_EMAIL_API_KEY${NC} from .env"
-        if set_secret "HOST_EMAIL_API_KEY" "$HOST_EMAIL_API_KEY"; then
-            success_count=$((success_count + 1))
-        else
-            fail_count=$((fail_count + 1))
-        fi
-    fi
-fi
-
-# --- HOST_EMAIL_FROM_ADDRESS: read from .env ---
-if secret_exists "HOST_EMAIL_FROM_ADDRESS"; then
-    print_skip "${BOLD}HOST_EMAIL_FROM_ADDRESS${NC} already exists, skipping"
-    skip_count=$((skip_count + 1))
-else
-    if [[ -z "${HOST_EMAIL_FROM_ADDRESS:-}" ]]; then
-        print_error "${BOLD}HOST_EMAIL_FROM_ADDRESS${NC} not found in .env, skipping"
-        fail_count=$((fail_count + 1))
-    else
-        print_info "Using ${BOLD}HOST_EMAIL_FROM_ADDRESS${NC} from .env"
-        if set_secret "HOST_EMAIL_FROM_ADDRESS" "$HOST_EMAIL_FROM_ADDRESS"; then
-            success_count=$((success_count + 1))
-        else
-            fail_count=$((fail_count + 1))
-        fi
-    fi
-fi
-
-# --- BUNNY_API_KEY: read from .env ---
-if secret_exists "BUNNY_API_KEY"; then
-    print_skip "${BOLD}BUNNY_API_KEY${NC} already exists, skipping"
-    skip_count=$((skip_count + 1))
-else
-    print_info "Using ${BOLD}BUNNY_API_KEY${NC} from .env"
-    if set_secret "BUNNY_API_KEY" "$BUNNY_API_KEY"; then
-        success_count=$((success_count + 1))
-    else
-        fail_count=$((fail_count + 1))
-    fi
-fi
+# Apple Wallet secrets (all from .env - certs use $(cat ...) in .env)
+set_from_env "APPLE_WALLET_PASS_TYPE_ID"
+set_from_env "APPLE_WALLET_TEAM_ID"
+set_from_env "APPLE_WALLET_SIGNING_CERT"
+set_from_env "APPLE_WALLET_SIGNING_KEY"
+set_from_env "APPLE_WALLET_WWDR_CERT"
 
 # Summary
 print_header "Summary"
