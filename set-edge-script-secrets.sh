@@ -68,16 +68,29 @@ API_BASE="https://api.bunny.net"
 
 print_header "Bunny Edge Script Secrets Manager"
 
-echo -e -n "  ${CYAN}→${NC} Enter edge script ID: "
-read -r SCRIPT_ID
+echo -e -n "  ${CYAN}→${NC} Enter edge script ID(s) separated by ${BOLD}|${NC}: "
+read -r SCRIPT_IDS_INPUT
 
-if ! [[ "$SCRIPT_ID" =~ ^[0-9]+$ ]]; then
-    print_error "Invalid script ID"
-    exit 1
-fi
+# Validate all script IDs
+IFS='|' read -ra SCRIPT_ID_LIST <<< "$SCRIPT_IDS_INPUT"
+for sid in "${SCRIPT_ID_LIST[@]}"; do
+    if ! [[ "$sid" =~ ^[0-9]+$ ]]; then
+        print_error "Invalid script ID: $sid"
+        exit 1
+    fi
+done
+
+echo -e "  ${DIM}Will process ${#SCRIPT_ID_LIST[@]} script(s): ${SCRIPT_IDS_INPUT}${NC}"
+
+# Global totals
+total_success=0
+total_skip=0
+total_fail=0
+
+for SCRIPT_ID in "${SCRIPT_ID_LIST[@]}"; do
 
 # Fetch existing secrets for this script
-print_header "Checking Existing Secrets"
+print_header "Script ${SCRIPT_ID} — Checking Existing Secrets"
 
 echo -e "  Edge Script ID: ${BOLD}${CYAN}$SCRIPT_ID${NC}"
 echo ""
@@ -136,7 +149,7 @@ set_secret() {
     fi
 }
 
-# Counters
+# Counters (per script)
 success_count=0
 skip_count=0
 fail_count=0
@@ -184,7 +197,7 @@ set_from_prompt() {
 }
 
 # Process each secret
-print_header "Setting Secrets"
+print_header "Script ${SCRIPT_ID} — Setting Secrets"
 
 echo -e "  ${DIM}Existing secrets will be skipped (not overwritten).${NC}"
 echo ""
@@ -225,8 +238,8 @@ set_from_env "APPLE_WALLET_SIGNING_CERT"
 set_from_env "APPLE_WALLET_SIGNING_KEY"
 set_from_env "APPLE_WALLET_WWDR_CERT"
 
-# Summary
-print_header "Summary"
+# Per-script summary
+print_header "Script ${SCRIPT_ID} — Summary"
 
 echo -e "  Edge Script ID: ${BOLD}${CYAN}$SCRIPT_ID${NC}"
 echo ""
@@ -239,6 +252,27 @@ if [[ $skip_count -gt 0 ]]; then
 fi
 if [[ $fail_count -gt 0 ]]; then
     echo -e "  ${RED}✗${NC} $fail_count secret(s) failed"
+fi
+
+total_success=$((total_success + success_count))
+total_skip=$((total_skip + skip_count))
+total_fail=$((total_fail + fail_count))
+
+done # end loop over SCRIPT_ID_LIST
+
+# Overall summary (only if multiple scripts)
+if [[ ${#SCRIPT_ID_LIST[@]} -gt 1 ]]; then
+    print_header "Overall Summary (${#SCRIPT_ID_LIST[@]} scripts)"
+
+    if [[ $total_success -gt 0 ]]; then
+        echo -e "  ${GREEN}✓${NC} $total_success secret(s) set"
+    fi
+    if [[ $total_skip -gt 0 ]]; then
+        echo -e "  ${DIM}○${NC} $total_skip secret(s) already existed (skipped)"
+    fi
+    if [[ $total_fail -gt 0 ]]; then
+        echo -e "  ${RED}✗${NC} $total_fail secret(s) failed"
+    fi
 fi
 
 echo ""
