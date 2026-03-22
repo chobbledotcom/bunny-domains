@@ -52,6 +52,9 @@ if [[ ! -f "$ENV_FILE" ]]; then
     echo -e "    ${CYAN}APPLE_WALLET_SIGNING_CERT=\$(cat ./signing-cert.pem)${NC}"
     echo -e "    ${CYAN}APPLE_WALLET_SIGNING_KEY=\$(cat ./signing-key.pem)${NC}"
     echo -e "    ${CYAN}APPLE_WALLET_WWDR_CERT=\$(cat ./wwdr-cert.pem)${NC}"
+    echo -e "    ${CYAN}GOOGLE_WALLET_ISSUER_ID=...${NC}"
+    echo -e "    ${CYAN}GOOGLE_WALLET_SERVICE_ACCOUNT_EMAIL=...${NC}"
+    echo -e "    ${CYAN}GOOGLE_WALLET_SERVICE_ACCOUNT_KEY=\$(cat ./google-service-account-key.pem)${NC}"
     echo ""
     exit 1
 fi
@@ -237,6 +240,11 @@ set_from_env "APPLE_WALLET_TEAM_ID"
 set_from_env "APPLE_WALLET_SIGNING_CERT"
 set_from_env "APPLE_WALLET_SIGNING_KEY"
 set_from_env "APPLE_WALLET_WWDR_CERT"
+
+# Google Wallet secrets (key uses $(cat ...) in .env)
+set_from_env "GOOGLE_WALLET_ISSUER_ID"
+set_from_env "GOOGLE_WALLET_SERVICE_ACCOUNT_EMAIL"
+set_from_env "GOOGLE_WALLET_SERVICE_ACCOUNT_KEY"
 
 # Per-script summary
 print_header "Script ${SCRIPT_ID} — Summary"
