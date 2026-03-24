@@ -224,6 +224,19 @@ else
     fi
 fi
 
+# Script's own ID
+if secret_exists "BUNNY_SCRIPT_ID"; then
+    print_skip "${BOLD}BUNNY_SCRIPT_ID${NC} already exists, skipping"
+    skip_count=$((skip_count + 1))
+else
+    print_info "Setting ${BOLD}BUNNY_SCRIPT_ID${NC} to ${DIM}$SCRIPT_ID${NC}"
+    if set_secret "BUNNY_SCRIPT_ID" "$SCRIPT_ID"; then
+        success_count=$((success_count + 1))
+    else
+        fail_count=$((fail_count + 1))
+    fi
+fi
+
 # Secrets from .env
 set_from_env "NTFY_URL"
 set_from_env "WEBHOOK_URL"
