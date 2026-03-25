@@ -246,6 +246,7 @@ set_from_env "HOST_EMAIL_PROVIDER"
 set_from_env "HOST_EMAIL_API_KEY"
 set_from_env "HOST_EMAIL_FROM_ADDRESS"
 set_from_env "BUNNY_API_KEY"
+set_from_env "BUNNY_DNS_ZONE_ID"
 set_from_env "BUNNY_DNS_SUBDOMAIN_SUFFIX"
 
 # Apple Wallet secrets (all from .env - certs use $(cat ...) in .env)
