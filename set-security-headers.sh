@@ -385,9 +385,9 @@ IMG_HOSTS=""
 FORM_HOSTS=""
 
 if ask_yn "Allow ${BOLD}*.freetobook.com${NC} (booking widget: scripts, connect, frames, forms)?"; then
-    EXTRA_SCRIPT_HOSTS+="https://*.freetobook.com "
-    EXTRA_CONNECT_HOSTS+="https://*.freetobook.com "
-    FRAME_HOSTS+="https://*.freetobook.com https://booking-directly.com"
+    EXTRA_SCRIPT_HOSTS+="https://*.freetobook.com https://js.stripe.com https://m.stripe.network "
+    EXTRA_CONNECT_HOSTS+="https://*.freetobook.com https://api.stripe.com https://m.stripe.network "
+    FRAME_HOSTS+="https://*.freetobook.com https://booking-directly.com https://js.stripe.com https://m.stripe.network "
     FORM_HOSTS+="https://*.freetobook.com "
 fi
 
