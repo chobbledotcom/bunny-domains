@@ -360,7 +360,7 @@ if ask_yn "Allow ${BOLD}youtube-nocookie.com${NC} frames (YouTube embeds)?"; the
 fi
 
 if ask_yn "Allow ${BOLD}iframe.mediadelivery.net${NC} frames (Bunny Stream)?"; then
-    FRAME_HOSTS+="https://iframe.mediadelivery.net "
+    FRAME_HOSTS+="https://iframe.mediadelivery.net https://player.mediadelivery.net "
 fi
 
 if ask_yn "Allow ${BOLD}player.vimeo.com${NC} frames (Vimeo embeds)?"; then
