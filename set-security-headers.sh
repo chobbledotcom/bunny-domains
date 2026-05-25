@@ -375,8 +375,8 @@ if ask_yn "Allow ${BOLD}TotalDrive.app${NC} frames (driving instructor booking w
     FRAME_HOSTS+="https://totaldrive.app https://*.totaldrive.app "
 fi
 
-if ask_yn "Allow ${BOLD}buttondown.email${NC} frames (email signups)?"; then
-    FRAME_HOSTS+="https://buttondown.email "
+if ask_yn "Allow ${BOLD}buttondown.com${NC} frames (email signups)?"; then
+    FRAME_HOSTS+="https://buttondown.com"
 fi
 
 if ask_yn "Allow ${BOLD}itch.io${NC} frames (game embeds)?"; then
