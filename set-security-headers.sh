@@ -375,6 +375,14 @@ if ask_yn "Allow ${BOLD}TotalDrive.app${NC} frames (driving instructor booking w
     FRAME_HOSTS+="https://totaldrive.app https://*.totaldrive.app "
 fi
 
+if ask_yn "Allow ${BOLD}buttondown.email${NC} frames (email signups)?"; then
+    FRAME_HOSTS+="https://buttondown.email "
+fi
+
+if ask_yn "Allow ${BOLD}itch.io${NC} frames (game embeds)?"; then
+    FRAME_HOSTS+="https://itch.io https://*.itch.io "
+fi
+
 # -- third-party widget bundles (script + connect + frame) --
 echo ""
 echo -e "  ${BOLD}Third-party widgets:${NC}"
