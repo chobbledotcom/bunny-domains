@@ -1,0 +1,3 @@
+[submodule "lib/bash-tui-toolkit"]
+	path = lib/bash-tui-toolkit
+	url = https://github.com/timo-reymann/bash-tui-toolkit
