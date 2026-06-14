@@ -30,12 +30,15 @@ source "${ROOT_DIR}/modules/common.sh"
 source "${ROOT_DIR}/modules/security_headers.sh"
 # shellcheck disable=SC1091
 source "${ROOT_DIR}/modules/dns_migadu.sh"
+# shellcheck disable=SC1091
+source "${ROOT_DIR}/modules/new_domain.sh"
 
 load_env
 
 # Module registry: "Menu label|function name".
 # Add new modules here as they are built.
 MENU_ITEMS=(
+    "Add new domain|run_new_domain"
     "Set security headers|run_security_headers"
     "DNS / Migadu mail|run_dns_migadu"
     "Manage DNS records (coming soon)|_not_implemented"
