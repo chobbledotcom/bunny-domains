@@ -28,6 +28,8 @@ popd >/dev/null
 source "${ROOT_DIR}/modules/common.sh"
 # shellcheck disable=SC1091
 source "${ROOT_DIR}/modules/security_headers.sh"
+# shellcheck disable=SC1091
+source "${ROOT_DIR}/modules/dns_migadu.sh"
 
 load_env
 
@@ -35,6 +37,7 @@ load_env
 # Add new modules here as they are built.
 MENU_ITEMS=(
     "Set security headers|run_security_headers"
+    "DNS / Migadu mail|run_dns_migadu"
     "Manage DNS records (coming soon)|_not_implemented"
     "Manage storage zones (coming soon)|_not_implemented"
 )
@@ -68,7 +71,6 @@ main_menu() {
         "$fn" || show_error "Action failed."
 
         echo ""
-        confirm "Return to the main menu?" >/dev/null
     done
 }
 
