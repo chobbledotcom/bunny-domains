@@ -10,6 +10,8 @@
 
 MIGADU_API_BASE="https://api.migadu.com/v1"
 MIGADU_KEY_FILE="/run/secrets/migadu_api_key"
+ROOT_ANALYTICS_IP="46.226.105.7"
+ROOT_ANALYTICS_TTL=86400
 
 # _migadu_records runs in command substitution, so (like bunny_api) it can't
 # return the HTTP status via a normal variable — a subshell assignment is lost.
@@ -205,16 +207,16 @@ _find_record() {
 }
 
 # Create or update one record. Skips the write if a matching record already
-# carries the same value, priority, weight and port.
-# Usage: _apply_record <label> <type_id> <name> <value> <priority> <mode> [weight] [port]
-# weight/port are only meaningful for SRV records; omit them otherwise.
+# carries the same value, priority, weight, port and TTL.
+# Usage: _apply_record <label> <type_id> <name> <value> <priority> <mode> [weight] [port] [ttl]
+# weight/port are only meaningful for SRV records; ttl defaults to 3600 seconds.
 _apply_record() {
     local label="$1" t="$2" name="$3" value="$4" priority="${5:-0}" mode="$6"
-    local weight="${7:-}" port="${8:-}"
+    local weight="${7:-}" port="${8:-}" ttl="${9:-3600}"
 
     local payload
     payload=$(jq -n --argjson type "$t" --arg name "$name" --arg value "$value" \
-        --argjson ttl 3600 --argjson priority "$priority" \
+        --argjson ttl "$ttl" --argjson priority "$priority" \
         --arg weight "$weight" --arg port "$port" \
         '{Type:$type, Name:$name, Value:$value, Ttl:$ttl, Priority:$priority}
          + (if $weight != "" then {Weight: ($weight|tonumber)} else {} end)
@@ -225,8 +227,8 @@ _apply_record() {
     if [[ -n "$id" ]]; then
         local cur
         cur=$(echo "$RECORDS_JSON" | jq -r --argjson i "$id" \
-            'map(select(.Id==$i))[0] | "\(.Value)|\(.Priority)|\(.Weight)|\(.Port)"')
-        if [[ "$cur" == "${value}|${priority}|${weight:-0}|${port:-0}" ]]; then
+            'map(select(.Id==$i))[0] | "\(.Value)|\(.Priority // 0)|\(.Weight // 0)|\(.Port // 0)|\(.Ttl // 0)"')
+        if [[ "$cur" == "${value}|${priority}|${weight:-0}|${port:-0}|${ttl}" ]]; then
             print_skip "$label — already up to date"
         elif bunny_api POST "/dnszone/${ZONE_ID}/records/${id}" "$payload" >/dev/null; then
             print_update "$label — updated"
@@ -238,6 +240,19 @@ _apply_record() {
     else
         print_error "$label — create failed (HTTP $(http_code))"
     fi
+}
+
+# Point the zone apex and analytics subdomain to the standard web server.
+_apply_root_analytics_records() {
+    echo ""
+    print_header "Setting root & analytics subdomains"
+
+    local a_t; a_t=$(_bunny_type_id a)
+    _apply_record "A @ -> ${ROOT_ANALYTICS_IP}" "$a_t" "" "$ROOT_ANALYTICS_IP" 0 name "" "" "$ROOT_ANALYTICS_TTL"
+    _apply_record "A analytics. -> ${ROOT_ANALYTICS_IP}" "$a_t" "analytics" "$ROOT_ANALYTICS_IP" 0 name "" "" "$ROOT_ANALYTICS_TTL"
+
+    echo ""
+    print_success "Done. A record changes can take time to propagate."
 }
 
 # Delete records of a given type whose host is not Migadu's (doesn't end in
@@ -419,6 +434,7 @@ run_dns_migadu() {
         local choice
         choice=$(list "Action for ${ZONE_DOMAIN}" \
             "Set mail records to Migadu" \
+            "Set root & analytics subdomains" \
             "Run Migadu diagnostics" \
             "Activate Migadu domain" \
             "Refresh" \
@@ -434,8 +450,16 @@ run_dns_migadu() {
                     print_info "Cancelled."
                 fi
                 ;;
-            1) echo ""; _migadu_diagnostics ;;
-            2)
+            1)
+                echo ""
+                if [[ "$(confirm "Set @ and analytics. A records in ${ZONE_DOMAIN} to ${ROOT_ANALYTICS_IP} with one-day TTLs?")" -eq 1 ]]; then
+                    _apply_root_analytics_records
+                else
+                    print_info "Cancelled."
+                fi
+                ;;
+            2) echo ""; _migadu_diagnostics ;;
+            3)
                 echo ""
                 if [[ "$(confirm "Activate ${ZONE_DOMAIN} in Migadu?")" -eq 1 ]]; then
                     _migadu_activate
@@ -443,9 +467,9 @@ run_dns_migadu() {
                     print_info "Cancelled."
                 fi
                 ;;
-            3) _load_migadu_domains ;; # refresh records (loop top) + domain state
-            4) select_dns_zone || return 1 ;;
-            5) break ;;
+            4) _load_migadu_domains ;; # refresh records (loop top) + domain state
+            5) select_dns_zone || return 1 ;;
+            6) break ;;
         esac
     done
 }
