@@ -32,6 +32,8 @@ source "${ROOT_DIR}/modules/security_headers.sh"
 source "${ROOT_DIR}/modules/dns_migadu.sh"
 # shellcheck disable=SC1091
 source "${ROOT_DIR}/modules/new_domain.sh"
+# shellcheck disable=SC1091
+source "${ROOT_DIR}/modules/database_settings.sh"
 
 load_env
 
@@ -39,6 +41,7 @@ load_env
 # Add new modules here as they are built.
 MENU_ITEMS=(
     "Add new domain|run_new_domain"
+    "Manage database regions|run_database_settings"
     "Set security headers|run_security_headers"
     "DNS / Migadu mail|run_dns_migadu"
     "Manage DNS records (coming soon)|_not_implemented"

@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(chmod +x bunny.sh)",
+      "Bash(bash -n bunny.sh)",
+      "Bash(bash -n modules/common.sh)",
+      "Bash(bash -n modules/security_headers.sh)",
+      "Bash(command -v shellcheck)",
+      "Bash(grep -v '> \"\\\\$BUNNY')",
+      "Bash(bash -c ' *)",
+      "WebFetch(domain:docs.bunny.net)",
+      "WebFetch(domain:migadu.com)",
+      "WebFetch(domain:www.migadu.com)",
+      "Bash(bash -n modules/dns_migadu.sh)"
+    ]
+  }
+}
