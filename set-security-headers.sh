@@ -359,6 +359,10 @@ if ask_yn "Allow ${BOLD}youtube-nocookie.com${NC} frames (YouTube embeds)?"; the
     FRAME_HOSTS+="https://www.youtube-nocookie.com "
 fi
 
+if ask_yn "Allow ${BOLD}s-gfc.ammhub.com${NC} frames (AMMHub embeds)?"; then
+    FRAME_HOSTS+="https://s-gfc.ammhub.com "
+fi
+
 if ask_yn "Allow ${BOLD}iframe.mediadelivery.net${NC} frames (Bunny Stream)?"; then
     FRAME_HOSTS+="https://iframe.mediadelivery.net https://player.mediadelivery.net "
 fi
