@@ -150,7 +150,7 @@ run_security_headers() {
     OPT_IDS+=("chobble_hosts");    OPT_LABELS+=("*.chobble.com (Chobble services: script/img/connect)")
     OPT_IDS+=("google_frames");    OPT_LABELS+=("*.google.com frames (Maps, reCAPTCHA)")
     OPT_IDS+=("youtube");          OPT_LABELS+=("youtube-nocookie.com frames (YouTube embeds)")
-    OPT_IDS+=("ammhub");           OPT_LABELS+=("s-gfc.ammhub.com frames (AMMHub embeds)")
+    OPT_IDS+=("ammhub");           OPT_LABELS+=("AMMHub enrolment and GoCardless payment frames")
     OPT_IDS+=("bunny_stream");     OPT_LABELS+=("iframe.mediadelivery.net frames (Bunny Stream)")
     OPT_IDS+=("vimeo");            OPT_LABELS+=("player.vimeo.com frames (Vimeo embeds)")
     OPT_IDS+=("chobble_frames");   OPT_LABELS+=("*.chobble.com frames")
@@ -189,7 +189,7 @@ run_security_headers() {
     local FRAME_HOSTS=""
     _has google_frames  && FRAME_HOSTS+="https://*.google.com "
     _has youtube        && FRAME_HOSTS+="https://www.youtube-nocookie.com "
-    _has ammhub         && FRAME_HOSTS+="https://s-gfc.ammhub.com "
+    _has ammhub         && FRAME_HOSTS+="https://s-gfc.ammhub.com https://pay.gocardless.com "
     _has bunny_stream   && FRAME_HOSTS+="https://iframe.mediadelivery.net https://player.mediadelivery.net "
     _has vimeo          && FRAME_HOSTS+="https://player.vimeo.com "
     _has chobble_frames && FRAME_HOSTS+="https://*.chobble.com "
